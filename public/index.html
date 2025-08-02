@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1a1a1a" />
+    <meta
+      name="description"
+      content="FocusBrew - Professional Pomodoro Timer with Coffee Cup Animation"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- Preload fonts for better performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <title>FocusBrew - Professional Pomodoro Timer</title>
+
+    <style>
+      /* Loading screen styles */
+      .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        color: white;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      .loading-logo {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #8b4513 0%, #d2691e 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        animation: pulse 2s infinite;
+      }
+
+      .loading-text {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #8b4513 0%, #d2691e 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .loading-subtitle {
+        font-size: 0.9rem;
+        color: #999;
+        margin-bottom: 2rem;
+      }
+
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(139, 69, 19, 0.3);
+        border-top: 3px solid #8b4513;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Hide loading screen when app loads */
+      .app-loaded .loading-screen {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.5s ease, visibility 0.5s ease;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loading-screen">
+      <div class="loading-logo">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+          <path
+            d="M18.5 3H6a2 2 0 0 0-2 2v3.28a3 3 0 0 0 .879 2.11L9.5 15v4a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-4l4.62-4.61A3 3 0 0 0 20 8.28V5a2 2 0 0 0-1.5-2z"
+          />
+        </svg>
+      </div>
+      <div class="loading-text">FocusBrew</div>
+      <div class="loading-subtitle">Professional Pomodoro Timer</div>
+      <div class="loading-spinner"></div>
+    </div>
+
+    <div id="root"></div>
+
+    <script>
+      // Hide loading screen when React app loads
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          document.body.classList.add("app-loaded");
+        }, 1000);
+      });
+
+      // Request notification permission on load
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    </script>
+  </body>
+</html>
