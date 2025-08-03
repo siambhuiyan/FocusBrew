@@ -1,6 +1,6 @@
 {
   "name": "focus-brew-pomodoro",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Professional Pomodoro Timer with Coffee Cup Animation",
   "author": "Siam Bhuiyan",
   "main": "public/electron.js",

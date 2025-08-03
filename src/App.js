@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Play, Pause, Square, Settings, Coffee, Maximize, Minimize2, Eye,
+  Play, Pause, Square, Settings, Coffee, Lock, Unlock, Eye,
   Clock, BarChart3, User, Home, Volume2, VolumeX, RotateCcw,
-  TrendingUp, Calendar, Target, Award, Zap, Timer
+  TrendingUp, Calendar, Target, Award, Zap, Timer, Plus,
+  Edit2, Trash2, CheckCircle, Circle
 } from 'lucide-react';
-import './App.css';
 
 const App = () => {
   // Timer states
@@ -14,127 +14,30 @@ const App = () => {
   const [completedPomodoros, setCompletedPomodoros] = useState(0);
   
   // UI states
-  const [activeTab, setActiveTab] = useState('timer');
-  const [showVideo, setShowVideo] = useState(false);
+  const [activeTab, setActiveTab] = useState('home');
   const [isMuted, setIsMuted] = useState(false);
-  const [isOverlay, setIsOverlay] = useState(false);
+  
+  // Screen lock states
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockPassword, setLockPassword] = useState('');
+  const [unlockPassword, setUnlockPassword] = useState('');
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [lockEnabled, setLockEnabled] = useState(true);
   
   // Session states
   const [workName, setWorkName] = useState('');
-  const [tags, setTags] = useState([]);
-  const [currentTag, setCurrentTag] = useState('');
+  const [tasks, setTasks] = useState([
+    { id: 1, text: 'Call Elon', completed: false, priority: 'high', time: '11:00' },
+    { id: 2, text: 'Meet Irchick', completed: false, priority: 'medium', time: '16:00' },
+    { id: 3, text: 'Finish dribbble shot', completed: false, priority: 'low', time: '19:00' },
+    { id: 4, text: 'Meet Uriyovich', completed: true, priority: 'high', time: '21:00' }
+  ]);
+  const [newTask, setNewTask] = useState('');
   const [customMinutes, setCustomMinutes] = useState(25);
-  const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [sessions, setSessions] = useState([]);
-  
-  // Refs
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-
-  // Check if running in overlay mode
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    setIsOverlay(urlParams.get('overlay') === 'true');
-  }, []);
-
-  // Load saved data
-  useEffect(() => {
-    if (window.electronAPI) {
-      loadSavedData();
-    }
-  }, []);
-
-  // Animated background effect
-  useEffect(() => {
-    if (!youtubeUrl && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      let animationId;
-      
-      const resizeCanvas = () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-      };
-      
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
-      
-      const particles = [];
-      for (let i = 0; i < 100; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.5,
-          size: Math.random() * 2 + 1,
-          opacity: Math.random() * 0.5 + 0.2
-        });
-      }
-      
-      const animate = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Gradient background
-        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        gradient.addColorStop(0, '#1a1a1a');
-        gradient.addColorStop(0.3, '#2d2d2d');
-        gradient.addColorStop(0.7, '#1f1f1f');
-        gradient.addColorStop(1, '#0a0a0a');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Animate particles
-        particles.forEach(particle => {
-          particle.x += particle.vx;
-          particle.y += particle.vy;
-          
-          if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
-          if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
-          
-          ctx.beginPath();
-          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(139, 69, 19, ${particle.opacity})`;
-          ctx.fill();
-        });
-        
-        // Coffee-themed floating elements
-        const time = Date.now() * 0.001;
-        for (let i = 0; i < 5; i++) {
-          const x = Math.sin(time + i) * 100 + canvas.width / 2;
-          const y = Math.cos(time + i * 0.7) * 50 + canvas.height / 2;
-          const size = Math.sin(time + i * 0.3) * 10 + 20;
-          
-          ctx.beginPath();
-          ctx.arc(x, y, size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(210, 105, 30, ${0.1 + Math.sin(time + i) * 0.05})`;
-          ctx.fill();
-        }
-        
-        animationId = requestAnimationFrame(animate);
-      };
-      
-      animate();
-      
-      return () => {
-        cancelAnimationFrame(animationId);
-        window.removeEventListener('resize', resizeCanvas);
-      };
-    }
-  }, [youtubeUrl]);
-
-  const loadSavedData = async () => {
-    try {
-      const savedSessions = await window.electronAPI.getStoreValue('sessions') || [];
-      setSessions(savedSessions);
-      
-      const savedSettings = await window.electronAPI.getStoreValue('settings') || {};
-      if (savedSettings.customMinutes) setCustomMinutes(savedSettings.customMinutes);
-      if (savedSettings.youtubeUrl) setYoutubeUrl(savedSettings.youtubeUrl);
-      if (savedSettings.completedPomodoros) setCompletedPomodoros(savedSettings.completedPomodoros);
-    } catch (error) {
-      console.error('Error loading saved data:', error);
-    }
-  };
+  const [sessions, setSessions] = useState([
+    { id: 1, workName: 'Design Review', duration: 1500, completedAt: new Date().toISOString(), completed: true, date: new Date().toDateString() },
+    { id: 2, workName: 'Code Review', duration: 1800, completedAt: new Date().toISOString(), completed: true, date: new Date().toDateString() }
+  ]);
 
   // Timer logic
   useEffect(() => {
@@ -143,7 +46,7 @@ const App = () => {
       interval = setInterval(() => {
         setTime(time => time - 1);
       }, 1000);
-    } else if (time === 0) {
+    } else if (time === 0 && isRunning) {
       handleTimerComplete();
     }
     return () => clearInterval(interval);
@@ -154,39 +57,15 @@ const App = () => {
     const newCount = completedPomodoros + 1;
     setCompletedPomodoros(newCount);
     
+    if (lockEnabled && isLocked) {
+      setShowUnlockModal(true);
+    }
+    
+    // Add notification
     if (Notification.permission === 'granted') {
       new Notification('🎉 FocusBrew Timer Complete!', {
         body: `${workName || 'Work session'} completed! You've finished ${newCount} pomodoros today.`,
-        icon: '/icon.png'
       });
-    }
-    
-    saveSession();
-    
-    if (window.electronAPI) {
-      window.electronAPI.setStoreValue('settings', {
-        ...{ customMinutes, youtubeUrl },
-        completedPomodoros: newCount
-      });
-    }
-  };
-
-  const saveSession = async () => {
-    const session = {
-      id: Date.now(),
-      workName: workName || 'Unnamed Session',
-      tags: [...tags],
-      duration: initialTime,
-      completedAt: new Date().toISOString(),
-      completed: time === 0,
-      date: new Date().toDateString()
-    };
-
-    const updatedSessions = [session, ...sessions];
-    setSessions(updatedSessions);
-    
-    if (window.electronAPI) {
-      await window.electronAPI.setStoreValue('sessions', updatedSessions);
     }
   };
 
@@ -195,37 +74,60 @@ const App = () => {
       Notification.requestPermission();
     }
     setIsRunning(true);
+    if (lockEnabled) {
+      setIsLocked(true);
+    }
   };
 
-  const pauseTimer = () => setIsRunning(false);
+  const pauseTimer = () => {
+    setIsRunning(false);
+    setIsLocked(false);
+  };
+
   const resetTimer = () => {
     setIsRunning(false);
     setTime(initialTime);
+    setIsLocked(false);
+  };
+
+  const handleUnlock = () => {
+    if (unlockPassword === lockPassword || unlockPassword === 'admin') {
+      setIsLocked(false);
+      setShowUnlockModal(false);
+      setUnlockPassword('');
+    } else {
+      alert('Incorrect password!');
+    }
   };
 
   const setCustomTime = () => {
     const newTime = customMinutes * 60;
     setTime(newTime);
     setInitialTime(newTime);
-    
-    if (window.electronAPI) {
-      window.electronAPI.setStoreValue('settings', {
-        customMinutes,
-        youtubeUrl,
-        completedPomodoros
-      });
+  };
+
+  const addTask = () => {
+    if (newTask.trim()) {
+      const task = {
+        id: Date.now(),
+        text: newTask,
+        completed: false,
+        priority: 'medium',
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+      };
+      setTasks([...tasks, task]);
+      setNewTask('');
     }
   };
 
-  const addTag = () => {
-    if (currentTag && !tags.includes(currentTag)) {
-      setTags([...tags, currentTag]);
-      setCurrentTag('');
-    }
+  const toggleTask = (id) => {
+    setTasks(tasks.map(task => 
+      task.id === id ? { ...task, completed: !task.completed } : task
+    ));
   };
 
-  const removeTag = (tagToRemove) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+  const deleteTask = (id) => {
+    setTasks(tasks.filter(task => task.id !== id));
   };
 
   const formatTime = (seconds) => {
@@ -234,194 +136,238 @@ const App = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getYouTubeEmbedUrl = (url) => {
-    if (!url) return '';
-    const videoId = url.split('v=')[1]?.split('&')[0] || url.split('/').pop();
-    return `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&mute=${isMuted ? 1 : 0}&loop=1&playlist=${videoId}`;
-  };
-
   const progress = ((initialTime - time) / initialTime) * 100;
-  const coffeeLevel = Math.max(10, 100 - progress);
 
-  // Analytics calculations
-  const todaySessions = sessions.filter(s => s.date === new Date().toDateString());
-  const weekSessions = sessions.filter(s => {
-    const sessionDate = new Date(s.completedAt);
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    return sessionDate >= weekAgo;
-  });
-  const totalFocusTime = sessions.reduce((total, session) => total + (session.completed ? session.duration : 0), 0);
-  const averageSessionLength = sessions.length > 0 ? Math.round(totalFocusTime / sessions.length / 60) : 0;
-
-  if (isOverlay) {
+  // Screen Lock Overlay
+  if (isLocked && !showUnlockModal) {
     return (
-      <div className="overlay-container">
-        <div className="overlay-header">
-          <Coffee className="overlay-icon" />
-          <span className="overlay-title">FocusBrew</span>
-        </div>
-        <div className="overlay-timer">{formatTime(time)}</div>
-        <div className="overlay-coffee">
-          <div 
-            className="overlay-coffee-fill" 
-            style={{ height: `${coffeeLevel}%` }}
-          ></div>
-        </div>
-        <div className="overlay-controls">
-          {!isRunning ? (
-            <button onClick={startTimer} className="overlay-btn">
-              <Play size={16} />
-            </button>
-          ) : (
-            <button onClick={pauseTimer} className="overlay-btn">
-              <Pause size={16} />
-            </button>
-          )}
-          <button onClick={resetTimer} className="overlay-btn">
-            <Square size={16} />
+      <div className="lock-screen">
+        <div className="lock-content">
+          <div className="lock-icon">
+            <Lock size={64} />
+          </div>
+          <h1>Focus Mode Active</h1>
+          <p>Stay focused! Timer is running...</p>
+          <div className="lock-timer">{formatTime(time)}</div>
+          <div className="lock-progress">
+            <div className="lock-progress-bar" style={{ width: `${progress}%` }}></div>
+          </div>
+          <button 
+            onClick={() => setIsLocked(false)} 
+            className="emergency-unlock"
+          >
+            Emergency Unlock
           </button>
         </div>
       </div>
     );
   }
 
-  const renderTimerTab = () => (
-    <div className="timer-container">
-      {/* Background */}
-      <div className="timer-background">
-        {youtubeUrl ? (
-          <div className="video-background">
-            <iframe
-              src={getYouTubeEmbedUrl(youtubeUrl)}
-              title="Background Video"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="background-video"
-            ></iframe>
-            <div className="video-overlay"></div>
+  // Unlock Modal
+  if (showUnlockModal) {
+    return (
+      <div className="unlock-modal-overlay">
+        <div className="unlock-modal">
+          <div className="unlock-icon">
+            <CheckCircle size={48} />
           </div>
-        ) : (
-          <canvas ref={canvasRef} className="animated-background"></canvas>
-        )}
+          <h2>Session Complete!</h2>
+          <p>Enter password to unlock and continue</p>
+          <input
+            type="password"
+            placeholder="Enter unlock password"
+            value={unlockPassword}
+            onChange={(e) => setUnlockPassword(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
+            className="unlock-input"
+            autoFocus
+          />
+          <div className="unlock-buttons">
+            <button onClick={handleUnlock} className="unlock-btn primary">
+              Unlock
+            </button>
+            <button 
+              onClick={() => {
+                setShowUnlockModal(false);
+                setIsLocked(false);
+                setUnlockPassword('');
+              }} 
+              className="unlock-btn secondary"
+            >
+              Skip
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const NavItem = ({ icon: Icon, label, tabKey, isActive, onClick }) => (
+    <button
+      onClick={onClick}
+      className={`nav-item ${isActive ? 'active' : ''}`}
+    >
+      <Icon size={20} />
+      <span>{label}</span>
+    </button>
+  );
+
+  const TaskCard = ({ task }) => (
+    <div className={`task-card ${task.completed ? 'completed' : ''} priority-${task.priority}`}>
+      <div className="task-main">
+        <button 
+          onClick={() => toggleTask(task.id)}
+          className="task-checkbox"
+        >
+          {task.completed ? <CheckCircle size={20} /> : <Circle size={20} />}
+        </button>
+        <div className="task-content">
+          <div className="task-text">{task.text}</div>
+          <div className="task-time">{task.time}</div>
+        </div>
+      </div>
+      <div className="task-actions">
+        <button onClick={() => deleteTask(task.id)} className="task-action-btn delete">
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderHomeTab = () => (
+    <div className="content-area">
+      <div className="content-header">
+        <div>
+          <h1>Today - {new Date().toLocaleDateString('en-US', { 
+            weekday: 'short', 
+            month: 'short', 
+            day: 'numeric' 
+          })}</h1>
+          <p className="content-subtitle">{tasks.filter(t => !t.completed).length} tasks remaining</p>
+        </div>
+        <button onClick={() => setActiveTab('timer')} className="btn primary">
+          <Play size={16} />
+          Start Focus
+        </button>
       </div>
 
-      {/* Timer Content */}
-      <div className="timer-content">
-        <div className="timer-display-container">
-          {/* 3D Coffee Cup */}
-          <div className="coffee-3d-container">
-            <div className="coffee-cup-3d">
-              <div className="cup-body">
-                <div className="coffee-liquid-3d" style={{ height: `${coffeeLevel}%` }}>
-                  <div className="coffee-surface"></div>
-                </div>
-                <div className="cup-handle"></div>
-              </div>
-              <div className="coffee-steam-3d">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className={`steam-particle-3d steam-${i}`}></div>
-                ))}
-              </div>
+      <div className="add-task-section">
+        <div className="add-task-card">
+          <input
+            type="text"
+            placeholder="Add a new task..."
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && addTask()}
+            className="add-task-input"
+          />
+          <button onClick={addTask} className="add-task-btn">
+            <Plus size={20} />
+          </button>
+        </div>
+      </div>
+
+      <div className="tasks-section">
+        <div className="section-header">
+          <h2>Today's Tasks</h2>
+          <span className="task-count">{tasks.length}</span>
+        </div>
+        <div className="tasks-list">
+          {tasks.map(task => (
+            <TaskCard key={task.id} task={task} />
+          ))}
+        </div>
+      </div>
+
+      <div className="stats-overview">
+        <div className="stat-card">
+          <div className="stat-icon coffee">
+            <Coffee size={24} />
+          </div>
+          <div className="stat-content">
+            <div className="stat-number">{completedPomodoros}</div>
+            <div className="stat-label">Pomodoros Today</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon success">
+            <Target size={24} />
+          </div>
+          <div className="stat-content">
+            <div className="stat-number">{tasks.filter(t => t.completed).length}</div>
+            <div className="stat-label">Completed Tasks</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderTimerTab = () => (
+    <div className="content-area timer-content">
+      <div className="timer-section">
+        <div className="coffee-animation">
+          <div className="coffee-cup">
+            <div className="coffee-liquid" style={{ height: `${Math.max(10, 100 - progress)}%` }}>
+              <div className="coffee-surface"></div>
+            </div>
+            <div className="coffee-steam">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className={`steam-particle steam-${i}`}></div>
+              ))}
             </div>
           </div>
-
-          {/* Main Timer Display */}
-          <div className="timer-display-3d">
-            <div className="time-text-3d">{formatTime(time)}</div>
-            <div className="timer-subtitle">
-              {isRunning ? 'Focus Time' : 'Ready to Focus'}
-            </div>
-            
-            {/* 3D Progress Ring */}
-            <div className="progress-ring-3d">
-              <svg className="progress-svg-3d" viewBox="0 0 200 200">
-                <defs>
-                  <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#8B4513" />
-                    <stop offset="50%" stopColor="#D2691E" />
-                    <stop offset="100%" stopColor="#FF8C00" />
-                  </linearGradient>
-                  <filter id="glow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                    <feMerge> 
-                      <feMergeNode in="coloredBlur"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                  </filter>
-                </defs>
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="85"
-                  className="progress-bg-3d"
-                />
-                <circle
-                  cx="100"
-                  cy="100"
-                  r="85"
-                  className="progress-fill-3d"
-                  style={{
-                    strokeDasharray: `${2 * Math.PI * 85}`,
-                    strokeDashoffset: `${2 * Math.PI * 85 * (1 - progress / 100)}`,
-                    stroke: 'url(#progressGradient)',
-                    filter: 'url(#glow)'
-                  }}
-                />
-              </svg>
-              <div className="progress-percentage">{Math.round(progress)}%</div>
-            </div>
-          </div>
-
-          {/* Control Buttons */}
-          <div className="timer-controls-3d">
-            {!isRunning ? (
-              <button onClick={startTimer} className="control-btn-3d primary">
-                <Play size={24} />
-                <span>Start Focus</span>
-                <div className="btn-shine"></div>
-              </button>
-            ) : (
-              <button onClick={pauseTimer} className="control-btn-3d secondary">
-                <Pause size={24} />
-                <span>Pause</span>
-                <div className="btn-shine"></div>
-              </button>
-            )}
-            <button onClick={resetTimer} className="control-btn-3d tertiary">
-              <RotateCcw size={24} />
-              <span>Reset</span>
-              <div className="btn-shine"></div>
-            </button>
-          </div>
-
-          {/* Session Info */}
-          {workName && (
-            <div className="current-session-display">
-              <h3>Current Session</h3>
-              <p>{workName}</p>
-              {tags.length > 0 && (
-                <div className="session-tags-display">
-                  {tags.map((tag, i) => (
-                    <span key={i} className="tag-display">{tag}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* Media Controls */}
-        {youtubeUrl && (
-          <div className="media-controls">
-            <button 
-              onClick={() => setIsMuted(!isMuted)} 
-              className="media-btn"
-              title={isMuted ? "Unmute" : "Mute"}
-            >
-              {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+        <div className="timer-display">
+          <div className="time-text">{formatTime(time)}</div>
+          <div className="timer-subtitle">
+            {isRunning ? 'Focus Time Active' : 'Ready to Focus'}
+          </div>
+          <div className="progress-ring">
+            <div className="progress-value">{Math.round(progress)}%</div>
+            <svg className="progress-svg" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="45"
+                className="progress-bg"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="45"
+                className="progress-fill"
+                style={{
+                  strokeDasharray: `${2 * Math.PI * 45}`,
+                  strokeDashoffset: `${2 * Math.PI * 45 * (1 - progress / 100)}`
+                }}
+              />
+            </svg>
+          </div>
+        </div>
+
+        <div className="timer-controls">
+          {!isRunning ? (
+            <button onClick={startTimer} className="control-btn primary large">
+              <Play size={24} />
+              Start Focus
             </button>
+          ) : (
+            <button onClick={pauseTimer} className="control-btn secondary large">
+              <Pause size={24} />
+              Pause
+            </button>
+          )}
+          <button onClick={resetTimer} className="control-btn tertiary">
+            <RotateCcw size={20} />
+            Reset
+          </button>
+        </div>
+
+        {workName && (
+          <div className="current-session">
+            <h3>Current Session</h3>
+            <p>{workName}</p>
           </div>
         )}
       </div>
@@ -429,77 +375,76 @@ const App = () => {
   );
 
   const renderSettingsTab = () => (
-    <div className="settings-container">
-      <div className="settings-grid">
+    <div className="content-area">
+      <div className="content-header">
+        <h1>Settings</h1>
+        <p className="content-subtitle">Customize your focus experience</p>
+      </div>
+
+      <div className="settings-sections">
         <div className="settings-card">
-          <h3><Timer size={20} /> Timer Settings</h3>
+          <h3>Timer Settings</h3>
           <div className="setting-group">
-            <label>Custom Timer Duration (minutes):</label>
-            <div className="time-setter">
+            <label>Focus Duration (minutes)</label>
+            <div className="input-group">
               <input
                 type="number"
                 min="1"
                 max="120"
                 value={customMinutes}
                 onChange={(e) => setCustomMinutes(parseInt(e.target.value))}
-                className="time-input-3d"
+                className="number-input"
               />
-              <button onClick={setCustomTime} className="set-time-btn-3d">
-                Set Timer
+              <button onClick={setCustomTime} className="btn secondary">
+                Update
               </button>
             </div>
           </div>
         </div>
 
         <div className="settings-card">
-          <h3><User size={20} /> Session Details</h3>
+          <h3>Focus Lock</h3>
           <div className="setting-group">
-            <label>What are you working on?</label>
-            <input
-              type="text"
-              placeholder="Enter your current task..."
-              value={workName}
-              onChange={(e) => setWorkName(e.target.value)}
-              className="work-input-3d"
-            />
+            <div className="toggle-setting">
+              <div>
+                <label>Enable Screen Lock</label>
+                <p className="setting-description">Lock screen during focus sessions</p>
+              </div>
+              <button 
+                onClick={() => setLockEnabled(!lockEnabled)}
+                className={`toggle ${lockEnabled ? 'active' : ''}`}
+              >
+                <div className="toggle-slider"></div>
+              </button>
+            </div>
           </div>
           
-          <div className="setting-group">
-            <label>Add Tags:</label>
-            <div className="tag-input-container">
+          {lockEnabled && (
+            <div className="setting-group">
+              <label>Unlock Password</label>
               <input
-                type="text"
-                placeholder="Add a tag..."
-                value={currentTag}
-                onChange={(e) => setCurrentTag(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addTag()}
-                className="tag-input-3d"
+                type="password"
+                placeholder="Set unlock password"
+                value={lockPassword}
+                onChange={(e) => setLockPassword(e.target.value)}
+                className="text-input"
               />
-              <button onClick={addTag} className="add-tag-btn-3d">+</button>
+              <p className="setting-hint">Default: 'admin' if no password set</p>
             </div>
-            <div className="tags-list-3d">
-              {tags.map((tag, index) => (
-                <span key={index} className="tag-3d">
-                  {tag}
-                  <button onClick={() => removeTag(tag)} className="remove-tag-3d">×</button>
-                </span>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
 
         <div className="settings-card">
-          <h3><Volume2 size={20} /> Background Music</h3>
+          <h3>Session Details</h3>
           <div className="setting-group">
-            <label>YouTube Music URL:</label>
+            <label>Current Task</label>
             <input
-              type="url"
-              placeholder="https://youtube.com/watch?v=..."
-              value={youtubeUrl}
-              onChange={(e) => setYoutubeUrl(e.target.value)}
-              className="url-input-3d"
+              type="text"
+              placeholder="What are you working on?"
+              value={workName}
+              onChange={(e) => setWorkName(e.target.value)}
+              className="text-input"
             />
-            <small>Paste a YouTube link for background focus music</small>
           </div>
         </div>
       </div>
@@ -507,146 +452,57 @@ const App = () => {
   );
 
   const renderAnalyticsTab = () => (
-    <div className="analytics-container">
+    <div className="content-area">
+      <div className="content-header">
+        <h1>Analytics</h1>
+        <p className="content-subtitle">Track your productivity</p>
+      </div>
+
       <div className="analytics-grid">
-        {/* Stats Cards */}
-        <div className="stats-cards">
-          <div className="stat-card">
-            <div className="stat-icon">
-              <Award size={24} />
-            </div>
-            <div className="stat-content">
-              <div className="stat-number">{completedPomodoros}</div>
-              <div className="stat-label">Today's Pomodoros</div>
-            </div>
+        <div className="analytics-card">
+          <div className="card-header">
+            <h3>Today's Stats</h3>
           </div>
-
-          <div className="stat-card">
-            <div className="stat-icon">
-              <Clock size={24} />
+          <div className="stats-grid">
+            <div className="stat-item">
+              <Award className="stat-icon" />
+              <div className="stat-data">
+                <div className="stat-number">{completedPomodoros}</div>
+                <div className="stat-label">Pomodoros</div>
+              </div>
             </div>
-            <div className="stat-content">
-              <div className="stat-number">{Math.round(totalFocusTime / 3600)}h</div>
-              <div className="stat-label">Total Focus Time</div>
+            <div className="stat-item">
+              <Clock className="stat-icon" />
+              <div className="stat-data">
+                <div className="stat-number">{Math.round(completedPomodoros * 25 / 60)}h</div>
+                <div className="stat-label">Focus Time</div>
+              </div>
             </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon">
-              <TrendingUp size={24} />
-            </div>
-            <div className="stat-content">
-              <div className="stat-number">{averageSessionLength}m</div>
-              <div className="stat-label">Avg Session</div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon">
-              <Target size={24} />
-            </div>
-            <div className="stat-content">
-              <div className="stat-number">{sessions.filter(s => s.completed).length}</div>
-              <div className="stat-label">Completed Sessions</div>
+            <div className="stat-item">
+              <Target className="stat-icon" />
+              <div className="stat-data">
+                <div className="stat-number">{tasks.filter(t => t.completed).length}</div>
+                <div className="stat-label">Tasks Done</div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Charts */}
-        <div className="charts-section">
-          <div className="chart-card">
-            <h3>Weekly Progress</h3>
-            <div className="progress-chart">
-              {[...Array(7)].map((_, i) => {
-                const date = new Date();
-                date.setDate(date.getDate() - (6 - i));
-                const dayName = date.toLocaleDateString('en', { weekday: 'short' });
-                const daySessions = sessions.filter(s => 
-                  new Date(s.completedAt).toDateString() === date.toDateString()
-                ).length;
-                const maxHeight = Math.max(...[...Array(7)].map((_, j) => {
-                  const d = new Date();
-                  d.setDate(d.getDate() - (6 - j));
-                  return sessions.filter(s => 
-                    new Date(s.completedAt).toDateString() === d.toDateString()
-                  ).length;
-                }), 1);
-                
-                return (
-                  <div key={i} className="chart-bar-container">
-                    <div 
-                      className="chart-bar"
-                      style={{ height: `${(daySessions / maxHeight) * 100}%` }}
-                    ></div>
-                    <div className="chart-label">
-                      <div className="chart-day">{dayName}</div>
-                      <div className="chart-count">{daySessions}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        <div className="analytics-card">
+          <div className="card-header">
+            <h3>Recent Sessions</h3>
           </div>
-
-          <div className="chart-card">
-            <h3>Focus Categories</h3>
-            <div className="category-chart">
-              {Object.entries(
-                sessions.reduce((acc, session) => {
-                  session.tags.forEach(tag => {
-                    acc[tag] = (acc[tag] || 0) + 1;
-                  });
-                  return acc;
-                }, {})
-              ).slice(0, 5).map(([tag, count], i) => (
-                <div key={i} className="category-item">
-                  <div className="category-bar">
-                    <div 
-                      className="category-fill"
-                      style={{ width: `${(count / Math.max(...Object.values(sessions.reduce((acc, session) => {
-                        session.tags.forEach(tag => {
-                          acc[tag] = (acc[tag] || 0) + 1;
-                        });
-                        return acc;
-                      }, {})))) * 100}%` }}
-                    ></div>
-                  </div>
-                  <div className="category-info">
-                    <span className="category-name">{tag}</span>
-                    <span className="category-count">{count}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Sessions */}
-        <div className="recent-sessions-card">
-          <h3>Recent Sessions</h3>
-          <div className="sessions-list-3d">
-            {sessions.slice(0, 10).map((session) => (
-              <div key={session.id} className="session-item-3d">
+          <div className="sessions-list">
+            {sessions.slice(0, 5).map((session) => (
+              <div key={session.id} className="session-item">
                 <div className="session-icon">
-                  {session.completed ? <Zap className="completed" /> : <Clock className="incomplete" />}
+                  <Zap size={16} />
                 </div>
                 <div className="session-details">
                   <div className="session-name">{session.workName}</div>
-                  <div className="session-meta">
-                    <span className="session-duration">{Math.floor(session.duration / 60)}m</span>
-                    <span className="session-date">
-                      {new Date(session.completedAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="session-tags-3d">
-                    {session.tags.map((tag, i) => (
-                      <span key={i} className="session-tag-3d">{tag}</span>
-                    ))}
-                  </div>
+                  <div className="session-duration">{Math.floor(session.duration / 60)}m</div>
                 </div>
-                <div className={`session-status ${session.completed ? 'completed' : 'incomplete'}`}>
-                  {session.completed ? '✓' : '○'}
-                </div>
+                <div className="session-status completed">✓</div>
               </div>
             ))}
           </div>
@@ -656,61 +512,1164 @@ const App = () => {
   );
 
   return (
-    <div className="app-3d">
-      {/* Header */}
-      <header className="app-header-3d">
-        <div className="logo-section-3d">
-          <Coffee className="app-logo-3d" />
-          <div className="logo-text">
-            <h1>FocusBrew</h1>
-            <span className="tagline">Professional Focus Timer</span>
+    <div className="app-container">
+      {/* Left Sidebar */}
+      <div className="sidebar">
+        <div className="sidebar-header">
+          <div className="logo">
+            <Coffee size={24} />
+            <div className="logo-text">
+              <h2>FocusBrew</h2>
+              <span>v1.0</span>
+            </div>
           </div>
         </div>
-        
-        {/* Navigation */}
-        <nav className="nav-tabs">
-          <button 
-            className={`nav-tab ${activeTab === 'timer' ? 'active' : ''}`}
+
+        <nav className="sidebar-nav">
+          <NavItem 
+            icon={Home} 
+            label="Home" 
+            tabKey="home"
+            isActive={activeTab === 'home'}
+            onClick={() => setActiveTab('home')}
+          />
+          <NavItem 
+            icon={Timer} 
+            label="Timer" 
+            tabKey="timer"
+            isActive={activeTab === 'timer'}
             onClick={() => setActiveTab('timer')}
-          >
-            <Home size={18} />
-            Timer
-          </button>
-          <button 
-            className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('settings')}
-          >
-            <Settings size={18} />
-            Settings
-          </button>
-          <button 
-            className={`nav-tab ${activeTab === 'analytics' ? 'active' : ''}`}
+          />
+          <NavItem 
+            icon={BarChart3} 
+            label="Analytics" 
+            tabKey="analytics"
+            isActive={activeTab === 'analytics'}
             onClick={() => setActiveTab('analytics')}
-          >
-            <BarChart3 size={18} />
-            Analytics
-          </button>
+          />
+          <NavItem 
+            icon={Settings} 
+            label="Settings" 
+            tabKey="settings"
+            isActive={activeTab === 'settings'}
+            onClick={() => setActiveTab('settings')}
+          />
         </nav>
 
-        <div className="header-controls-3d">
-          <button onClick={() => window.electronAPI?.showOverlay()} className="header-btn-3d" title="Show Overlay">
-            <Eye size={20} />
-          </button>
-          <button onClick={() => window.electronAPI?.toggleFullscreen()} className="header-btn-3d" title="Toggle Fullscreen">
-            <Maximize size={20} />
-          </button>
-          <button onClick={() => window.electronAPI?.minimizeToTray()} className="header-btn-3d" title="Minimize to Tray">
-            <Minimize2 size={20} />
-          </button>
+        <div className="sidebar-footer">
+          <div className="user-info">
+            <div className="user-avatar">
+              <User size={20} />
+            </div>
+            <div className="user-details">
+              <div className="user-name">Focus User</div>
+              <div className="user-status">Online</div>
+            </div>
+          </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
-      <main className="main-content-3d">
+      <div className="main-content">
+        {activeTab === 'home' && renderHomeTab()}
         {activeTab === 'timer' && renderTimerTab()}
         {activeTab === 'settings' && renderSettingsTab()}
         {activeTab === 'analytics' && renderAnalyticsTab()}
-      </main>
+      </div>
+
+      <style jsx>{`
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+          background: #f8fafc;
+          color: #1e293b;
+        }
+
+        .app-container {
+          display: flex;
+          height: 100vh;
+          background: #f8fafc;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+          width: 240px;
+          background: white;
+          border-right: 1px solid #e2e8f0;
+          display: flex;
+          flex-direction: column;
+          position: relative;
+        }
+
+        .sidebar-header {
+          padding: 20px;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .logo svg {
+          color: #8b5a3c;
+        }
+
+        .logo-text h2 {
+          font-size: 18px;
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        .logo-text span {
+          font-size: 12px;
+          color: #64748b;
+        }
+
+        .sidebar-nav {
+          flex: 1;
+          padding: 16px 12px;
+        }
+
+        .nav-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+          padding: 12px 16px;
+          margin-bottom: 4px;
+          border: none;
+          background: transparent;
+          border-radius: 8px;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .nav-item:hover {
+          background: #f1f5f9;
+          color: #334155;
+        }
+
+        .nav-item.active {
+          background: #fef3ec;
+          color: #8b5a3c;
+        }
+
+        .sidebar-footer {
+          padding: 20px;
+          border-top: 1px solid #e2e8f0;
+        }
+
+        .user-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .user-avatar {
+          width: 36px;
+          height: 36px;
+          background: #f1f5f9;
+          border-radius: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #64748b;
+        }
+
+        .user-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: #1e293b;
+        }
+
+        .user-status {
+          font-size: 12px;
+          color: #10b981;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+          flex: 1;
+          overflow: auto;
+        }
+
+        .content-area {
+          padding: 32px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .content-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 32px;
+        }
+
+        .content-header h1 {
+          font-size: 28px;
+          font-weight: 700;
+          color: #1e293b;
+          margin-bottom: 4px;
+        }
+
+        .content-subtitle {
+          color: #64748b;
+          font-size: 14px;
+        }
+
+        /* Button Styles */
+        .btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 20px;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn.primary {
+          background: #8b5a3c;
+          color: white;
+        }
+
+        .btn.primary:hover {
+          background: #7c5131;
+        }
+
+        .btn.secondary {
+          background: #f1f5f9;
+          color: #334155;
+        }
+
+        .btn.secondary:hover {
+          background: #e2e8f0;
+        }
+
+        .btn.tertiary {
+          background: transparent;
+          color: #64748b;
+          border: 1px solid #e2e8f0;
+        }
+
+        .btn.tertiary:hover {
+          background: #f8fafc;
+        }
+
+        /* Add Task Section */
+        .add-task-section {
+          margin-bottom: 32px;
+        }
+
+        .add-task-card {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 20px;
+          display: flex;
+          gap: 12px;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .add-task-input {
+          flex: 1;
+          border: none;
+          outline: none;
+          font-size: 16px;
+          color: #1e293b;
+        }
+
+        .add-task-input::placeholder {
+          color: #94a3b8;
+        }
+
+        .add-task-btn {
+          width: 40px;
+          height: 40px;
+          border: none;
+          background: #8b5a3c;
+          color: white;
+          border-radius: 8px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+
+        .add-task-btn:hover {
+          background: #7c5131;
+        }
+
+        /* Tasks Section */
+        .tasks-section {
+          margin-bottom: 32px;
+        }
+
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+
+        .section-header h2 {
+          font-size: 20px;
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        .task-count {
+          background: #f1f5f9;
+          color: #64748b;
+          padding: 4px 12px;
+          border-radius: 16px;
+          font-size: 12px;
+          font-weight: 500;
+        }
+
+        .tasks-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .task-card {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .task-card:hover {
+          border-color: #cbd5e1;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .task-card.completed {
+          opacity: 0.6;
+          background: #f8fafc;
+        }
+
+        .task-card.priority-high {
+          border-left: 4px solid #ef4444;
+        }
+
+        .task-card.priority-medium {
+          border-left: 4px solid #f59e0b;
+        }
+
+        .task-card.priority-low {
+          border-left: 4px solid #10b981;
+        }
+
+        .task-main {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex: 1;
+        }
+
+        .task-checkbox {
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: #64748b;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .task-card.completed .task-checkbox {
+          color: #10b981;
+        }
+
+        .task-content {
+          flex: 1;
+        }
+
+        .task-text {
+          font-size: 14px;
+          font-weight: 500;
+          color: #1e293b;
+          margin-bottom: 2px;
+        }
+
+        .task-card.completed .task-text {
+          text-decoration: line-through;
+          color: #64748b;
+        }
+
+        .task-time {
+          font-size: 12px;
+          color: #64748b;
+        }
+
+        .task-actions {
+          display: flex;
+          gap: 4px;
+        }
+
+        .task-action-btn {
+          width: 32px;
+          height: 32px;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          border-radius: 6px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+
+        .task-action-btn:hover {
+          background: #f1f5f9;
+        }
+
+        .task-action-btn.delete:hover {
+          background: #fef2f2;
+          color: #ef4444;
+        }
+
+        /* Stats Overview */
+        .stats-overview {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+        }
+
+        .stat-card {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 20px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+        }
+
+        .stat-icon.coffee {
+          background: linear-gradient(135deg, #8b5a3c, #a0522d);
+        }
+
+        .stat-icon.success {
+          background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .stat-number {
+          font-size: 24px;
+          font-weight: 700;
+          color: #1e293b;
+          line-height: 1;
+        }
+
+        .stat-label {
+          font-size: 12px;
+          color: #64748b;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-top: 4px;
+        }
+
+        /* Timer Content Styles */
+        .timer-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: calc(100vh - 120px);
+          text-align: center;
+        }
+
+        .timer-section {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 40px;
+        }
+
+        .coffee-animation {
+          position: relative;
+        }
+
+        .coffee-cup {
+          width: 120px;
+          height: 140px;
+          background: linear-gradient(180deg, #4a4a4a 0%, #2a2a2a 100%);
+          border-radius: 0 0 60px 60px;
+          position: relative;
+          border: 3px solid #666;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .coffee-liquid {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: linear-gradient(180deg, #8b5a3c 0%, #654321 100%);
+          border-radius: 0 0 57px 57px;
+          transition: height 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .coffee-surface {
+          position: absolute;
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 90%;
+          height: 6px;
+          background: radial-gradient(ellipse, #a0522d 0%, #8b5a3c 70%);
+          border-radius: 50%;
+          animation: surfaceRipple 3s ease-in-out infinite;
+        }
+
+        @keyframes surfaceRipple {
+          0%, 100% { transform: translateX(-50%) scale(1); }
+          50% { transform: translateX(-50%) scale(1.1); }
+        }
+
+        .coffee-steam {
+          position: absolute;
+          top: -30px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 80px;
+          height: 40px;
+        }
+
+        .steam-particle {
+          position: absolute;
+          width: 4px;
+          height: 20px;
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 100%);
+          border-radius: 2px;
+          animation: steam 2s infinite;
+        }
+
+        .steam-0 { left: 20px; animation-delay: 0s; }
+        .steam-1 { left: 30px; animation-delay: 0.3s; }
+        .steam-2 { left: 40px; animation-delay: 0.6s; }
+        .steam-3 { left: 25px; animation-delay: 0.9s; }
+        .steam-4 { left: 35px; animation-delay: 1.2s; }
+        .steam-5 { left: 45px; animation-delay: 1.5s; }
+
+        @keyframes steam {
+          0% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(-25px) scale(1.5);
+          }
+        }
+
+        .timer-display {
+          position: relative;
+        }
+
+        .time-text {
+          font-size: 64px;
+          font-weight: 300;
+          color: #1e293b;
+          font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', 'Monaco', monospace;
+          margin-bottom: 8px;
+        }
+
+        .timer-subtitle {
+          font-size: 16px;
+          color: #64748b;
+          font-weight: 500;
+          margin-bottom: 32px;
+        }
+
+        .progress-ring {
+          position: relative;
+          width: 300px;
+          height: 300px;
+          margin: 0 auto;
+        }
+
+        .progress-svg {
+          width: 100%;
+          height: 100%;
+          transform: rotate(-90deg);
+        }
+
+        .progress-bg {
+          fill: none;
+          stroke: #f1f5f9;
+          stroke-width: 8;
+        }
+
+        .progress-fill {
+          fill: none;
+          stroke: #8b5a3c;
+          stroke-width: 8;
+          stroke-linecap: round;
+          transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .progress-value {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 18px;
+          font-weight: 600;
+          color: #8b5a3c;
+        }
+
+        .timer-controls {
+          display: flex;
+          gap: 16px;
+          align-items: center;
+        }
+
+        .control-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 16px 24px;
+          border: none;
+          border-radius: 12px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .control-btn.large {
+          padding: 20px 32px;
+          font-size: 18px;
+        }
+
+        .control-btn.primary {
+          background: #8b5a3c;
+          color: white;
+        }
+
+        .control-btn.primary:hover {
+          background: #7c5131;
+          transform: translateY(-2px);
+        }
+
+        .control-btn.secondary {
+          background: #ef4444;
+          color: white;
+        }
+
+        .control-btn.secondary:hover {
+          background: #dc2626;
+          transform: translateY(-2px);
+        }
+
+        .control-btn.tertiary {
+          background: #f1f5f9;
+          color: #64748b;
+        }
+
+        .control-btn.tertiary:hover {
+          background: #e2e8f0;
+        }
+
+        .current-session {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 20px;
+          text-align: center;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .current-session h3 {
+          font-size: 14px;
+          color: #8b5a3c;
+          font-weight: 600;
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .current-session p {
+          font-size: 18px;
+          color: #1e293b;
+          font-weight: 500;
+        }
+
+        /* Settings Styles */
+        .settings-sections {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .settings-card {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 24px;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .settings-card h3 {
+          font-size: 18px;
+          font-weight: 600;
+          color: #1e293b;
+          margin-bottom: 20px;
+        }
+
+        .setting-group {
+          margin-bottom: 20px;
+        }
+
+        .setting-group:last-child {
+          margin-bottom: 0;
+        }
+
+        .setting-group label {
+          display: block;
+          font-size: 14px;
+          font-weight: 500;
+          color: #374151;
+          margin-bottom: 8px;
+        }
+
+        .input-group {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+
+        .number-input,
+        .text-input {
+          flex: 1;
+          padding: 12px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          font-size: 14px;
+          color: #1e293b;
+          transition: border-color 0.2s ease;
+        }
+
+        .number-input:focus,
+        .text-input:focus {
+          outline: none;
+          border-color: #8b5a3c;
+        }
+
+        .toggle-setting {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .setting-description {
+          font-size: 12px;
+          color: #64748b;
+          margin-top: 2px;
+        }
+
+        .toggle {
+          width: 48px;
+          height: 28px;
+          background: #e2e8f0;
+          border-radius: 14px;
+          border: none;
+          cursor: pointer;
+          position: relative;
+          transition: background-color 0.2s ease;
+        }
+
+        .toggle.active {
+          background: #8b5a3c;
+        }
+
+        .toggle-slider {
+          width: 20px;
+          height: 20px;
+          background: white;
+          border-radius: 10px;
+          position: absolute;
+          top: 4px;
+          left: 4px;
+          transition: transform 0.2s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle.active .toggle-slider {
+          transform: translateX(20px);
+        }
+
+        .setting-hint {
+          font-size: 12px;
+          color: #64748b;
+          margin-top: 4px;
+        }
+
+        /* Analytics Styles */
+        .analytics-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+        }
+
+        .analytics-card {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 24px;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+          margin-bottom: 20px;
+        }
+
+        .card-header h3 {
+          font-size: 18px;
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+        }
+
+        .stat-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: 16px;
+          background: #f8fafc;
+          border-radius: 8px;
+        }
+
+        .stat-item .stat-icon {
+          width: 32px;
+          height: 32px;
+          margin-bottom: 8px;
+          color: #8b5a3c;
+        }
+
+        .stat-data .stat-number {
+          font-size: 20px;
+          font-weight: 700;
+          color: #1e293b;
+        }
+
+        .stat-data .stat-label {
+          font-size: 12px;
+          color: #64748b;
+          margin-top: 2px;
+        }
+
+        .sessions-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .session-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          background: #f8fafc;
+          border-radius: 8px;
+          transition: background-color 0.2s ease;
+        }
+
+        .session-item:hover {
+          background: #f1f5f9;
+        }
+
+        .session-icon {
+          width: 32px;
+          height: 32px;
+          background: #8b5a3c;
+          color: white;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .session-details {
+          flex: 1;
+        }
+
+        .session-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: #1e293b;
+        }
+
+        .session-duration {
+          font-size: 12px;
+          color: #64748b;
+        }
+
+        .session-status {
+          color: #10b981;
+          font-size: 16px;
+        }
+
+        /* Lock Screen Styles */
+        .lock-screen {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+
+        .lock-content {
+          text-align: center;
+          color: white;
+          max-width: 400px;
+          padding: 40px;
+        }
+
+        .lock-icon {
+          margin-bottom: 24px;
+          color: #8b5a3c;
+        }
+
+        .lock-content h1 {
+          font-size: 32px;
+          font-weight: 700;
+          margin-bottom: 12px;
+        }
+
+        .lock-content p {
+          font-size: 16px;
+          color: #cbd5e1;
+          margin-bottom: 32px;
+        }
+
+        .lock-timer {
+          font-size: 48px;
+          font-weight: 300;
+          font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', monospace;
+          margin-bottom: 24px;
+          color: #8b5a3c;
+        }
+
+        .lock-progress {
+          width: 100%;
+          height: 8px;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
+          overflow: hidden;
+          margin-bottom: 32px;
+        }
+
+        .lock-progress-bar {
+          height: 100%;
+          background: #8b5a3c;
+          border-radius: 4px;
+          transition: width 1s ease;
+        }
+
+        .emergency-unlock {
+          background: transparent;
+          color: #cbd5e1;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          padding: 12px 24px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.2s ease;
+        }
+
+        .emergency-unlock:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+        }
+
+        /* Unlock Modal Styles */
+        .unlock-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background: rgba(0, 0, 0, 0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1001;
+        }
+
+        .unlock-modal {
+          background: white;
+          border-radius: 16px;
+          padding: 40px;
+          max-width: 400px;
+          width: 90%;
+          text-align: center;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .unlock-icon {
+          color: #10b981;
+          margin-bottom: 24px;
+        }
+
+        .unlock-modal h2 {
+          font-size: 24px;
+          font-weight: 700;
+          color: #1e293b;
+          margin-bottom: 8px;
+        }
+
+        .unlock-modal p {
+          color: #64748b;
+          margin-bottom: 24px;
+        }
+
+        .unlock-input {
+          width: 100%;
+          padding: 16px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          font-size: 16px;
+          text-align: center;
+          margin-bottom: 24px;
+        }
+
+        .unlock-input:focus {
+          outline: none;
+          border-color: #8b5a3c;
+        }
+
+        .unlock-buttons {
+          display: flex;
+          gap: 12px;
+        }
+
+        .unlock-btn {
+          flex: 1;
+          padding: 12px 24px;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .unlock-btn.primary {
+          background: #8b5a3c;
+          color: white;
+        }
+
+        .unlock-btn.primary:hover {
+          background: #7c5131;
+        }
+
+        .unlock-btn.secondary {
+          background: #f1f5f9;
+          color: #64748b;
+        }
+
+        .unlock-btn.secondary:hover {
+          background: #e2e8f0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+          .sidebar {
+            width: 60px;
+          }
+
+          .sidebar-header,
+          .sidebar-footer {
+            padding: 16px 12px;
+          }
+
+          .logo-text,
+          .nav-item span,
+          .user-details {
+            display: none;
+          }
+
+          .content-area {
+            padding: 20px;
+          }
+
+          .content-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+          }
+
+          .analytics-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .stats-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .time-text {
+            font-size: 48px;
+          }
+
+          .progress-ring {
+            width: 250px;
+            height: 250px;
+          }
+
+          .timer-controls {
+            flex-direction: column;
+          }
+        }
+      `}</style>
     </div>
   );
 };
